@@ -1,0 +1,142 @@
+version: "3.7"
+
+services:
+  app_01:
+    container_name: app_01
+    ports:
+      - 3001:3001
+    build: 
+      context: ./app_01
+      dockerfile: Dockerfile
+    working_dir: /app_01
+    restart: always
+    volumes:
+      - ./app_01:/app_01
+    depends_on:
+      - mysql
+    networks:
+      - default
+
+  app_02:
+    container_name: app_02
+    ports:
+      - 3002:3002
+    build: 
+      context: ./app_02
+      dockerfile: Dockerfile
+    working_dir: /app_02
+    restart: always
+    volumes:
+      -  ./app_02:/app_02
+    depends_on:
+      - mysql
+    networks:
+      - default
+
+  app_03:
+    container_name: app_03
+    ports:
+      - 3003:3003
+    build: 
+      context: ./app_03
+      dockerfile: Dockerfile
+    working_dir: /app_03
+    restart: always
+    volumes:
+      -  ./app_03:/app_03
+    depends_on:
+      - mysql
+    networks:
+      - default
+
+  react_app:
+    container_name: react_app
+    ports:
+      - 3000:3000
+    build:
+      context: ./react_app
+      dockerfile: Dockerfile
+    working_dir: /frontend
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    restart: always
+    volumes:
+      - ./react_app:/frontend
+      - /frontend/node_modules
+    depends_on:
+      - app_01
+      - app_02
+      - app_03
+    networks:
+      - default
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: docker_mailhog
+    logging:
+      driver: 'none'  # disable saving logs
+    ports:
+      - 1025:1025 # smtp server
+      - 8025:8025 # web ui
+    networks:
+      - default
+
+  mysql:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    volumes:
+      - ./mysql:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: todos
+      MYSQL_USER: abc
+      MYSQL_PASSWORD: abc
+    networks:
+      - default
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      - PMA_ARBITRARY=10
+      - PMA_HOST=mysql
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+      - PMA_PORT=3306
+    depends_on:
+      - mysql
+    networks:
+      - default
+
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - 8181:80
+    depends_on: 
+      - app
+    volumes:
+      - .:/app/project
+      - ./nginx/nginx_log:/var/log/nginx
+      - ./nginx/config/app.conf:/etc/nginx/conf.d/app.conf 
+    networks:
+      - default
+  
+  redis-commander:
+    container_name: docker-redis-commander
+    image: rediscommander/redis-commander
+    restart: always
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+
+networks:
+  default:
+    driver: bridge
+
+
+
